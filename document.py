@@ -26,6 +26,9 @@ class Document:
     
     def __repr__(self) -> str:
         return f"[Document] doc_url={self.doc_url} url_path_list={self.url_path_list} name={self.name}"
+    
+    def doc_title_enhanse():
+        pass
 
 class Chunk:
     def __init__(self, doc: Document, text: str, subtitles: List[str]):
