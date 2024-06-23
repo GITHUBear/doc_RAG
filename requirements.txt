@@ -4,5 +4,7 @@ langchain
 FlagEmbedding
 torch
 transformers
-pyserini
 faiss-cpu
+whoosh
+chromadb
+dashscope

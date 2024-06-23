@@ -19,4 +19,4 @@ def load_doc_base(url: str):
                 for chunk in chunks:
                     logging.info(f"get chunk: {chunk}")
 
-load_doc_base('/Users/dimdew/Documents/code/oceanbase-doc/test')
+load_doc_base('./test')
