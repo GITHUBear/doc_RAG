@@ -9,7 +9,11 @@ class RagConfig:
     chroma_doc_topk = 12
     chroma_title_topk = 2
     sparse_doc_topk = 10
-    reranker_topk = 4
+    reranker_topk = 8
     dense_weight = 0.3
     sparse_weight = 0.2
     colbert_weight = 0.5
+    tongyi_model_name = 'qwen-plus'
+    tongyi_top_p = 0.1
+    tongyi_temperature = 0.3
+    tongyi_stream=False

@@ -21,6 +21,7 @@ class BgeM3DenseEmbeddingFunction(EmbeddingFunction):
 
     def __call__(self, input: chroma_doc) -> Embeddings:
         return (self.model.encode(input,
+                                  batch_size=2,
                                   return_dense=True,
                                   return_sparse=False,
                                   return_colbert_vecs=False)['dense_vecs']).tolist()
@@ -34,6 +35,7 @@ class ChromaSearchEngine:
         self.chroma_title_corpus = self.chroma_cli.get_or_create_collection(name="title_corpus", metadata=config.chroma_metadata, embedding_function=self.chroma_embed_fn)
         self.chroma_doc_topk = config.chroma_doc_topk
         self.chroma_title_topk = config.chroma_title_topk
+        self.reranker_topk = config.reranker_topk
         self.reranker = self.chroma_embed_fn.model
         self.dense_weight = config.dense_weight
         self.sparse_weight = config.sparse_weight
@@ -43,7 +45,7 @@ class ChromaSearchEngine:
         chunk_contents = [chunk.text for chunk in chunks]
         chunk_metadatas = [chunk.get_metadata() for chunk in chunks]
         chunk_ids = [chunk.get_id() for chunk in chunks]
-        chunk_titles = [meta['enhanced_title'] for meta in chunk_metadatas]
+        chunk_titles = [meta['enhance_url'] + '-' + chunk.get_enhanced_title_for_embed() for meta, chunk in zip(chunk_metadatas, chunks)]
         chunk_title_metadatas = [chunk.get_metadata_for_title_enhance() for chunk in chunks]
 
         self.chroma_doc_corpus.add(
@@ -61,12 +63,18 @@ class ChromaSearchEngine:
         id_dict = {}
         rerank_doc_id = []
         rerank_pair = []
+        doc_url_idx_mapper = {}
         for i in range(self.chroma_doc_topk):
             id = doc_result['ids'][i]
             if id not in id_dict:
                 id_dict[id] = {
                     'id': id,
-                    'metadata': doc_result['metadatas'][i]['doc_url'],
+                    'metadata': {
+                        "doc_url": doc_result['metadatas'][i]['doc_url'],
+                        "doc_name": doc_result['metadatas'][i]['doc_name'],
+                        "chunk_title": doc_result['metadatas'][i]['chunk_title'],
+                        "enhanced_title": doc_result['metadatas'][i]['enhanced_title'],
+                    },
                     'document': doc_result['documents'][i],
                 }
                 rerank_doc_id.append(id)
@@ -76,7 +84,12 @@ class ChromaSearchEngine:
             if id not in id_dict:
                 id_dict[id] = {
                     'id': id,
-                    'metadata': title_result['metadatas'][i]['doc_url'],
+                    'metadata': {
+                        "doc_url": title_result['metadatas'][i]['doc_url'],
+                        "doc_name": title_result['metadatas'][i]['doc_name'],
+                        "chunk_title": title_result['metadatas'][i]['chunk_title'],
+                        "enhanced_title": title_result['metadatas'][i]['enhanced_title'],
+                    },
                     'document': title_result['metadatas'][i]['document'],
                 }
                 rerank_doc_id.append(id)
@@ -92,7 +105,17 @@ class ChromaSearchEngine:
         merge_res = []
         for _, doc_id in combined_sorted:
             merge_res.append(id_dict[doc_id])
-        return merge_res
+
+        same_doc_idx = []
+        for i in range(self.reranker_topk):
+            mr = merge_res[i]
+            doc_url = mr['metadata']['doc_url']
+            if doc_url not in doc_url_idx_mapper:
+                doc_url_idx_mapper[doc_url] = len(same_doc_idx)
+                same_doc_idx.append([i])
+            else:
+                same_doc_idx[doc_url_idx_mapper[doc_url]].append(i)
+        return merge_res[:self.reranker_topk], same_doc_idx
 
     def search(self, query_texts: List[str]):
         doc_results = self.chroma_doc_corpus.query(
@@ -104,6 +127,7 @@ class ChromaSearchEngine:
             n_results=self.chroma_title_topk
         )
         results = []
+        same_doc_idxs = []
         for i in range(len(query_texts)):
             doc_result = {
                 'ids': doc_results['ids'][i],
@@ -115,7 +139,8 @@ class ChromaSearchEngine:
                 'metadatas': title_results['metadatas'][i],
                 'documents': title_results['documents'][i],
             }
-            rerank_result = self._merge_results(query_texts[i], doc_result, title_result)
+            rerank_result, same_doc_idx = self._merge_results(query_texts[i], doc_result, title_result)
             results.append(rerank_result)
-        return results
+            same_doc_idxs.append(same_doc_idx)
+        return results, same_doc_idxs
 

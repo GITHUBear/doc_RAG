@@ -27,16 +27,24 @@ class Document:
     def __repr__(self) -> str:
         return f"[Document] doc_url={self.doc_url} url_path_list={self.url_path_list} name={self.name}"
     
-    def doc_title_enhanse(self):
+    def doc_url_enhanse(self):
         if self.doc_base.path_name_handler is not None:
             return '-'.join([self.doc_base.path_name_handler(path) for path in self.url_path_list])
         else:
             return '-'.join(self.url_path_list)
+    
+    def get_enhansed_doc_name(self):
+        if self.doc_base.path_name_handler is not None:
+            return self.doc_base.path_name_handler(self.name)
+        else:
+            return self.name
 
 class Chunk:
     def __init__(self, doc: Document, text: str, subtitles: List[str]):
         self.doc = doc
         self.text = text
+        if len(subtitles) == 0:
+            subtitles.append(self.doc.get_enhansed_doc_name())
         self.subtitles = subtitles
         self.title = subtitles[-1]
         
@@ -52,17 +60,24 @@ class Chunk:
     def __repr__(self) -> str:
         return f"[Chunk] subtitles={self.subtitles} title={self.title}"
     
+    def get_enhanced_title_for_embed(self):
+        return '-'.join(self.subtitles)
+    
     def get_metadata(self) -> dict:
         return {
             "doc_url": self.doc.doc_url,
             "doc_name": self.doc.name,
+            "enhance_url": self.doc.doc_url_enhanse(),
             "chunk_title": self.title,
-            "enhanced_title": self.doc.doc_title_enhanse() + '-' + '-'.join(self.subtitles)
+            "enhanced_title": ' -> '.join(self.subtitles)
         }
     
     def get_metadata_for_title_enhance(self) -> dict:
         return {
             "doc_url": self.doc.doc_url,
             "doc_name": self.doc.name,
+            "enhance_url": self.doc.doc_url_enhanse(),
+            "chunk_title": self.title,
+            "enhanced_title": ' -> '.join(self.subtitles),
             "document": self.text,
         }
