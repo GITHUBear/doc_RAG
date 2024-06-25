@@ -29,9 +29,9 @@ class Document:
     
     def doc_url_enhanse(self):
         if self.doc_base.path_name_handler is not None:
-            return '-'.join([self.doc_base.path_name_handler(path) for path in self.url_path_list])
+            return ' - '.join([self.doc_base.path_name_handler(path) for path in self.url_path_list])
         else:
-            return '-'.join(self.url_path_list)
+            return ' - '.join(self.url_path_list)
     
     def get_enhansed_doc_name(self):
         if self.doc_base.path_name_handler is not None:
@@ -60,8 +60,14 @@ class Chunk:
     def __repr__(self) -> str:
         return f"[Chunk] subtitles={self.subtitles} title={self.title}"
     
+    def get_enhance_text(self):
+        return self.doc.name + ' - ' + self.get_enhanced_title_for_embed() + ': ' + self.text
+    
     def get_enhanced_title_for_embed(self):
-        return '-'.join(self.subtitles)
+        return ' - '.join(self.subtitles)
+    
+    def get_enhanced_url_for_embed(self):
+        return self.doc.doc_url_enhanse()
     
     def get_metadata(self) -> dict:
         return {

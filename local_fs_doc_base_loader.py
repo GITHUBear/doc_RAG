@@ -3,7 +3,7 @@ import logging
 from doc_base_loader import DocBaseLoader
 from document import DocumentBase, Document
 from md_splitter import LocalFsMdSplitter
-from search_engine import ChromaSearchEngine
+from search_engine import ChromaSearchEngine, WhooshSearchEngine, MilvusSearchEngine
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -11,7 +11,7 @@ class LocalFsDocBaseLoader(DocBaseLoader):
     def __init__(self):
         self.engine = ChromaSearchEngine()
 
-    def load_doc_base(self, doc_base: DocumentBase):
+    def load_doc_base(self, doc_base: DocumentBase, checkpoint = 0):
         md_splitter = LocalFsMdSplitter()
         file_cnt = 0
         for root, _, files in os.walk(doc_base.url):
@@ -19,10 +19,50 @@ class LocalFsDocBaseLoader(DocBaseLoader):
                 if file.endswith('.md'):
                     file_path = os.path.join(root, file)
                     logging.info(f"finish {file_cnt}s doc -- current: {file_path}")
-                    doc = Document(doc_base, file_path)
-                    chunks = md_splitter.split_doc(doc)
-                    for chunk in chunks:
-                        logging.debug(f"get chunk: {chunk}")
-                    self.engine.add_chunks(chunks)
+                    if file_cnt >= checkpoint:
+                        doc = Document(doc_base, file_path)
+                        chunks = md_splitter.split_doc(doc)
+                        for chunk in chunks:
+                            logging.debug(f"get chunk: {chunk}")
+                        self.engine.add_chunks(chunks)
                     file_cnt += 1
                     # logging.info(f"finish {file_cnt}s doc -- current: {file_path}")
+
+class LocalFsDocBaseWhooshLoader(DocBaseLoader):
+    def __init__(self):
+        self.engine = WhooshSearchEngine()
+
+    def load_doc_base(self, doc_base: DocumentBase, checkpoint = 0):
+        md_splitter = LocalFsMdSplitter()
+        file_cnt = 0
+        for root, _, files in os.walk(doc_base.url):
+            for file in files:
+                if file.endswith('.md'):
+                    file_path = os.path.join(root, file)
+                    logging.info(f"finish {file_cnt}s doc -- current: {file_path}")
+                    if file_cnt >= checkpoint:
+                        doc = Document(doc_base, file_path)
+                        chunks = md_splitter.split_doc(doc)
+                        for chunk in chunks:
+                            logging.debug(f"get chunk: {chunk}")
+                        self.engine.add_chunks(chunks)
+                    file_cnt += 1
+
+class LocalFsDocBaseMilvusLoader(DocBaseLoader):
+    def __init__(self, logger: logging.Logger):
+        self.logger = logger
+        self.engine = MilvusSearchEngine(logger)
+
+    def load_doc_base(self, doc_base: DocumentBase, checkpoint = 0):
+        md_splitter = LocalFsMdSplitter()
+        file_cnt = 0
+        for root, _, files in os.walk(doc_base.url):
+            for file in files:
+                if file.endswith('.md'):
+                    file_path = os.path.join(root, file)
+                    self.logger.info(f"finish {file_cnt}s doc -- current: {file_path}")
+                    if file_cnt >= checkpoint:
+                        doc = Document(doc_base, file_path)
+                        chunks = md_splitter.split_doc(doc)
+                        self.engine.add_chunks(chunks)
+                    file_cnt += 1

@@ -4,6 +4,7 @@ class RagConfig:
     pooling_method = 'cls'
     normalize_embeddings = True
     use_fp16 = True
+    whoosh_path = 'indexdir'
     chroma_path = './chroma'
     chroma_metadata = {"hnsw:space": "cosine"}
     chroma_doc_topk = 12
@@ -17,3 +18,11 @@ class RagConfig:
     tongyi_top_p = 0.1
     tongyi_temperature = 0.3
     tongyi_stream=False
+
+    milvus_db_file="milvus_rag.db"
+    milvus_corpus_collection_name="corpus"
+    milvus_dense_corpus_topk = 12
+    milvus_sparse_corpus_topk = 10
+    milvus_dense_title_topk = 5
+    milvus_reranker_topk = 10
+    milvus_dense_dim = 1024

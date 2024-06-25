@@ -2,16 +2,17 @@ import logging
 from prompt_list import *
 from llm_tongyi import TongyiLLM
 from http import HTTPStatus
-from search_engine import ChromaSearchEngine
+from search_engine import ChromaSearchEngine, MilvusSearchEngine
 import gradio as gr
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 tongyi = TongyiLLM()
-engine = ChromaSearchEngine()
+engine = MilvusSearchEngine(logger)
 
 def parse_model_output_t1(output):
-    logging.info(f"intent detection: {output}")
+    logger.info(f"intent detection: {output}")
     # Split the output into lines
     lines = output.strip().split('\n')
 
@@ -62,25 +63,25 @@ def get_url_list(result, same_doc_idx):
 
 def chat(query: str):
     prompt_1 = prompt_t1.format(user_question = query)
-    logging.info(f"############# prompt1:\n {prompt_1}\n")
+    logger.info(f"############# prompt1:\n {prompt_1}\n")
     resp = tongyi.chat(prompt_1)
-    logging.info(f"############# resp1:\n {handle_resp(resp)}\n")
+    logger.info(f"############# resp1:\n {handle_resp(resp)}\n")
     intent = parse_model_output_t1(handle_resp(resp))['intent']
     resp2 = None
     if intent == 1:
         prompt_2 = prompt_t3.format(user_question = query)
-        logging.info(f"############# prompt2:\n {prompt_2}\n")
+        logger.info(f"############# prompt2:\n {prompt_2}\n")
         resp2 = tongyi.chat(prompt_2)
-        logging.info(f"############# resp2:\n {handle_resp(resp2)}\n")
+        logger.info(f"############# resp2:\n {handle_resp(resp2)}\n")
         return handle_resp(resp2)
     elif intent == 0:
         query = parse_model_output_t1(handle_resp(resp))['rewritten_question']
-        logging.info(f"############# rewrite query:\n {query}\n")
+        logger.info(f"############# rewrite query:\n {query}\n")
         results, same_doc_idxs = engine.search([query])
         # for r in results[0]:
         #     print(f"\n\n#############results###############\n  {r['metadata']}")
         document_snippets = format_document_snippet(results[0], same_doc_idxs[0])
-        logging.info(f"############# document_snippets:\n {document_snippets}\n")
+        logger.info(f"############# document_snippets:\n {document_snippets}\n")
         prompt_2 = prompt_t2.format(user_question = query, document_snippets = document_snippets)
         ans_f = handle_resp(tongyi.chat(prompt_2))
         ref_str = '结果仅供参考，如有遗漏请参阅下方的参考链接原始文档。 参考链接：\n'

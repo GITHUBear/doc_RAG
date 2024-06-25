@@ -18,4 +18,4 @@ ebd = model.encode(stc,
 # a = ebd['dense_vecs'].tolist()
 # print(type(a[0]))
 # print(a)
-print(ebd['lexical_weights'])
+print(model.convert_id_to_token(ebd['lexical_weights']))

@@ -7,7 +7,7 @@ def parse_title(title: str) -> str:
 
 doc_base = DocumentBase(url='./oceanbase-doc/zh-CN', path_name_handler=parse_title)
 loader = LocalFsDocBaseLoader()
-loader.load_doc_base(doc_base)
+loader.load_doc_base(doc_base, 3514)
 
 # res, same_doc_idxs = loader.engine.search(["OceanBase是什么"])
 # for r in res[0]:
