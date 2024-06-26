@@ -5,3 +5,6 @@ FlagEmbedding
 torch
 transformers
 dashscope
+pymilvus
+boltdb
+redis[hiredis]
