@@ -3,9 +3,9 @@ import dashscope
 from dotenv import load_dotenv
 from config import RagConfig
 from typing import List
-from http import HTTPStatus
+from llm_abc import LLM
 
-class TongyiLLM:
+class TongyiLLM(LLM):
     def __init__(self) -> None:
         load_dotenv(".env")
         config = RagConfig()
@@ -15,7 +15,7 @@ class TongyiLLM:
         self.stream = config.tongyi_stream
         self.multi_chat_max_msgs = config.multi_chat_max_rounds * 2
 
-    def chat(self, input_prompt):
+    def chat(self, input_prompt: str) -> str :
         response = dashscope.Generation.call(
             model=self.model_name,
             prompt=input_prompt,
@@ -25,7 +25,11 @@ class TongyiLLM:
             top_p=self.top_p,
             temperature=self.temperature,
         )
-        return response
+        if response.status_code == 200:
+            return response.output.text
+        else:
+            print(response.code, response.message)
+            raise ValueError(f"{response.code}: {response.message}")
     
     def multi_chat(self, messages: List[dict], user_content, pure_user_content):
         messages = messages[2 - self.multi_chat_max_msgs:]
@@ -44,7 +48,7 @@ class TongyiLLM:
             temperature=self.temperature,
             result_format='message'
         )
-        if response.status_code == HTTPStatus.OK:
+        if response.status_code == 200:
             messages.append({
                 'role': 'user',
                 'content': pure_user_content,
@@ -56,3 +60,4 @@ class TongyiLLM:
             return response.status_code, response.output.choices[0]['message']['content'], messages
         else:
             return response.status_code, "", messages
+

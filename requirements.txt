@@ -8,3 +8,5 @@ dashscope
 pymilvus
 boltdb
 redis[hiredis]
+gradio
+zhipuai

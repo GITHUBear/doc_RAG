@@ -2,19 +2,18 @@ import time
 import logging
 from prompt_list import *
 from llm_tongyi import TongyiLLM
-from http import HTTPStatus
+from llm_zhipu import ZhipuLLM
 from search_engine import MilvusSearchEngine
-import gradio as gr
-from typing import List
 
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger = logging.getLogger(__name__)
 logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 tongyi = TongyiLLM()
+llm_model = ZhipuLLM()
 engine = MilvusSearchEngine(logger)
 
 def parse_model_output_t1(output):
@@ -39,12 +38,6 @@ def parse_model_output_t1(output):
             else:
                 result['rewritten_question'] = None
     return result
-
-def handle_resp(resp):
-    if resp.status_code == HTTPStatus.OK:
-        return resp.output.text
-    else:
-        raise f"{resp.code}: {resp.message}"
 
 def format_document_snippet(result, same_doc_idx):
     document_snippet = ""
@@ -71,28 +64,28 @@ def chat(query: str):
     start_time = time.time()
     prompt_1 = prompt_t1.format(user_question = query)
     logger.debug(f"############# prompt1:\n {prompt_1}\n")
-    resp = tongyi.chat(prompt_1)
+    resp = llm_model.chat(prompt_1)
     intent_chat_end_time = time.time()
-    logger.debug(f"############# resp1:\n {handle_resp(resp)}\n")
-    intent = parse_model_output_t1(handle_resp(resp))['intent']
+    logger.debug(f"############# resp1:\n {resp}\n")
+    intent = parse_model_output_t1(resp)['intent']
     resp2 = None
     if intent == 1:
         prompt_2 = prompt_t3.format(user_question = query)
         logger.debug(f"############# prompt2:\n {prompt_2}\n")
-        resp2 = tongyi.chat(prompt_2)
+        resp2 = llm_model.chat(prompt_2)
         simple_chat_end_time = time.time()
-        logger.debug(f"############# resp2:\n {handle_resp(resp2)}\n")
+        logger.debug(f"############# resp2:\n {resp2}\n")
         logger.info(f"cost --- intent_chat:{(intent_chat_end_time - start_time) * 1000}ms  simple_chat:{(simple_chat_end_time - intent_chat_end_time) * 1000}ms")
-        return handle_resp(resp2)
+        return resp2
     elif intent == 0:
-        query = parse_model_output_t1(handle_resp(resp))['rewritten_question']
+        query = parse_model_output_t1(resp)['rewritten_question']
         logger.debug(f"############# rewrite query:\n {query}\n")
         results, same_doc_idxs = engine.search([query])
         document_snippets = format_document_snippet(results[0], same_doc_idxs[0])
         doc_search_end_time = time.time()
         logger.debug(f"############# document_snippets:\n {document_snippets}\n")
         prompt_2 = prompt_t2.format(user_question = query, document_snippets = document_snippets)
-        ans_f = handle_resp(tongyi.chat(prompt_2))
+        ans_f = llm_model.chat(prompt_2)
         rag_end_time = time.time()
         logger.info(f"cost --- intent_chat:{(intent_chat_end_time - start_time) * 1000}ms doc_search:{(doc_search_end_time - intent_chat_end_time) * 1000}ms rag_chat:{(rag_end_time - doc_search_end_time) * 1000}ms")
         ref_str = '结果仅供参考，如有遗漏请参阅下方的参考链接原始文档。 参考链接：\n'
@@ -103,7 +96,7 @@ def chat(query: str):
         return "执行出错，非常抱歉，请重试或者联系管理员"
 
 def handle_multi_chat_resp(ret_code, resp):
-    if ret_code == HTTPStatus.OK:
+    if ret_code == 200:
         return resp
     else:
         return f"get http error: {ret_code}"
@@ -116,20 +109,20 @@ def multi_chat(query: str):
     logger.debug(f"############# prompt1:\n {prompt_1}\n")
     resp = tongyi.chat(prompt_1)
     intent_chat_end_time = time.time()
-    logger.debug(f"############# resp1:\n {handle_resp(resp)}\n")
-    intent = parse_model_output_t1(handle_resp(resp))['intent']
+    logger.debug(f"############# resp1:\n {resp}\n")
+    intent = parse_model_output_t1(resp)['intent']
     resp2 = None
     if intent == 1:
         prompt_2 = prompt_t3.format(user_question = query)
         logger.debug(f"############# prompt2:\n {prompt_2}\n")
         ret_code, resp2, new_history_msgs = tongyi.multi_chat(history_msgs, prompt_2, query)
         simple_chat_end_time = time.time()
-        logger.debug(f"############# resp2:\n {handle_resp(resp2)}\n")
+        logger.debug(f"############# resp2:\n {resp2}\n")
         logger.info(f"cost --- intent_chat:{(intent_chat_end_time - start_time) * 1000}ms  simple_chat:{(simple_chat_end_time - intent_chat_end_time) * 1000}ms")
         history_msgs = new_history_msgs
         return handle_multi_chat_resp(ret_code, resp2)
     elif intent == 0:
-        query = parse_model_output_t1(handle_resp(resp))['rewritten_question']
+        query = parse_model_output_t1(resp)['rewritten_question']
         logger.debug(f"############# rewrite query:\n {query}\n")
         results, same_doc_idxs = engine.search([query])
         document_snippets = format_document_snippet(results[0], same_doc_idxs[0])
@@ -144,7 +137,7 @@ def multi_chat(query: str):
         ref_str += url_list
         ans_f = handle_multi_chat_resp(ret_code, resp2) 
         history_msgs = new_history_msgs
-        if ret_code == HTTPStatus.OK:
+        if ret_code == 200:
             return ans_f + "\n\n" + ref_str
         else:
             return ans_f
@@ -166,12 +159,3 @@ def multi_chat_not_restrict(query: str):
 # chat_resp = chat("OceanBase是什么")
 # print("\n\n####################### chat result ###################################\n\n")
 # print(chat_resp)
-
-demo = gr.Interface(
-    fn=multi_chat_not_restrict,
-    inputs="text",
-    outputs="text",
-    title="OceanBase 问答机器人-V0.1",
-    description="基于混合检索和意图分类的OceanBase 问答机器人"
-)
-demo.launch()
