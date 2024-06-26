@@ -130,7 +130,6 @@ def multi_chat(query: str):
         return handle_multi_chat_resp(ret_code, resp2)
     elif intent == 0:
         query = parse_model_output_t1(handle_resp(resp))['rewritten_question']
-        print(f"rewrote question: {query}")
         logger.debug(f"############# rewrite query:\n {query}\n")
         results, same_doc_idxs = engine.search([query])
         document_snippets = format_document_snippet(results[0], same_doc_idxs[0])
@@ -151,13 +150,25 @@ def multi_chat(query: str):
             return ans_f
     else:
         return "执行出错，非常抱歉，请重试或者联系管理员"
+
+def multi_chat_not_restrict(query: str):
+    global history_msgs
+    if len(history_msgs) == 0:
+        return multi_chat(query)
+    else:
+        start_time = time.time()
+        ret_code, resp2, new_history_msgs = tongyi.multi_chat(history_msgs, query, query)
+        simple_chat_end_time = time.time()
+        logger.info(f"cost --- simple_chat:{(simple_chat_end_time - start_time) * 1000}ms")
+        history_msgs = new_history_msgs
+        return handle_multi_chat_resp(ret_code, resp2)
     
 # chat_resp = chat("OceanBase是什么")
 # print("\n\n####################### chat result ###################################\n\n")
 # print(chat_resp)
 
 demo = gr.Interface(
-    fn=multi_chat,
+    fn=multi_chat_not_restrict,
     inputs="text",
     outputs="text",
     title="OceanBase 问答机器人-V0.1",
