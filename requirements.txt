@@ -4,9 +4,4 @@ langchain
 FlagEmbedding
 torch
 transformers
-faiss-cpu
-whoosh
-chromadb
 dashscope
-jieba
-whoosh

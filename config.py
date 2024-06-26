@@ -21,8 +21,9 @@ class RagConfig:
 
     milvus_db_file="milvus_rag.db"
     milvus_corpus_collection_name="corpus"
-    milvus_dense_corpus_topk = 12
+    milvus_dense_corpus_topk = 10
     milvus_sparse_corpus_topk = 10
-    milvus_dense_title_topk = 5
+    milvus_dense_title_topk = 6
+    milvus_sparse_title_topk = 6
     milvus_reranker_topk = 10
     milvus_dense_dim = 1024
