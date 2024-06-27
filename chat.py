@@ -54,11 +54,14 @@ def format_document_snippet(result, same_doc_idx):
         document_snippet += formatted_string
     return document_snippet
 
-def get_url_list(result, same_doc_idx):
+def get_url_list(result, same_doc_idx, output_md=True, replace_from="./oceanbase-doc", replace_to="https://github.com/oceanbase/oceanbase-doc/blob/V4.1.0"):
     url_list = []
     for doc_idx in same_doc_idx:
         doc_meta = result[doc_idx[0]]['metadata']
-        url_list.append(doc_meta['doc_name'] + " : " +  doc_meta['doc_url'])
+        if output_md:
+            url_list.append(f"[{doc_meta['doc_name']}]({doc_meta['doc_url'].replace(replace_from, replace_to)})")
+        else:
+            url_list.append(doc_meta['doc_name'] + " : " +  {doc_meta['doc_url'].replace(replace_from, replace_to)})
     return url_list
 
 def chat(query: str):
