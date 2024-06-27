@@ -59,7 +59,7 @@ def get_url_list(result, same_doc_idx, output_md=True, replace_from="./oceanbase
     for doc_idx in same_doc_idx:
         doc_meta = result[doc_idx[0]]['metadata']
         if output_md:
-            url_list.append(f"[{doc_meta['doc_name']}]({doc_meta['doc_url'].replace(replace_from, replace_to)})")
+            url_list.append(f"\n- [{doc_meta['doc_name']}]({doc_meta['doc_url'].replace(replace_from, replace_to)})")
         else:
             url_list.append(doc_meta['doc_name'] + " : " +  {doc_meta['doc_url'].replace(replace_from, replace_to)})
     return url_list
