@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 from prompt_list import *
@@ -10,7 +11,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger = logging.getLogger(__name__)
 logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if os.environ.get("DEBUG", "false") == "true" else logging.INFO)
 
 tongyi = TongyiLLM()
 llm_model = ZhipuLLM()

@@ -140,4 +140,4 @@ async def rerank(request: RerankRequest):
 async def handle_chat(request: Request):
     data = await request.json()
     response = chat(data["input"])
-    return {"response": response}
+    return {"answer": response}
