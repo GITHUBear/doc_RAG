@@ -18,6 +18,11 @@ class RagConfig:
     tongyi_top_p = 0.1
     tongyi_temperature = 0.3
     tongyi_stream=False
+    
+    zhipu_model_name = 'glm-4'
+    zhipu_top_p = 0.1
+    zhipu_temperature = 0.3
+    zhipu_stream=False
 
     milvus_db_file="milvus_rag.db"
     milvus_corpus_collection_name="corpus"

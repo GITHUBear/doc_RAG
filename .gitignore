@@ -5,3 +5,6 @@ test_chroma/
 .env
 oceanbase-doc/
 .DS_Store
+.venv
+milvus_rag.db
+.milvus_rag.db.lock
