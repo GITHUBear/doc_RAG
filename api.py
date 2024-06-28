@@ -162,7 +162,6 @@ async def handle_chat(request: Request):
     response = chat(data["input"])
     return {"answer": response}
 
-print(chat("你好！"))
 
 @app.post("/api/chat")
 async def handle_api_chat(request: Request):
@@ -170,7 +169,7 @@ async def handle_api_chat(request: Request):
     logger.debug(data)
 
     messages: list = data["messages"]
-    print(messages)
+    logger.debug(messages)
 
     query = messages.pop()["content"]
 
