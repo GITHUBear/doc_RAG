@@ -23,7 +23,7 @@ class StreamChunk:
         role: str = "assistant",
         created_at: datetime = datetime.now(),
     ):
-        print("StreamChunk: ", content)
+        # print("StreamChunk: ", content)
         self.content = content
         self.done = done
         self.model = model

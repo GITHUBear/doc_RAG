@@ -174,4 +174,4 @@ async def handle_api_chat(request: Request):
     query = messages.pop()["content"]
 
     generator = multi_chat(query, messages, stream=True, model="tongyi")
-    return StreamingResponse(generator, media_type="application/json")
+    return StreamingResponse(generator, media_type="application/x-ndjson")
