@@ -54,7 +54,7 @@ class TongyiLLM(LLM):
             temperature=self.temperature,
         )
         if not stream:
-            return response.choices[0]["message"]["content"]
+            return response.choices[0].message.content
 
         def response_stream():
             for chunk in response:
@@ -91,7 +91,7 @@ class TongyiLLM(LLM):
             temperature=self.temperature,
         )
 
-        response_content = response.choices[0]["message"]["content"]
+        response_content = response.choices[0].message.content
 
         messages.append(
             {
