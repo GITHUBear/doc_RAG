@@ -10,3 +10,4 @@ boltdb
 redis[hiredis]
 gradio
 zhipuai
+openai

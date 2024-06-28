@@ -3,18 +3,8 @@ from zhipuai import ZhipuAI
 from dotenv import load_dotenv
 from config import RagConfig
 from llm_abc import LLM
-
-
-class Message:
-    def __init__(self, role: str, content: str):
-        self.role = role
-        self.content = content
-
-    def __str__(self):
-        return f"{self.role}: {self.content}"
-
-    def to_dict(self):
-        return {"role": self.role, "content": self.content}
+from typing import List, Generator, Any
+from message import StreamChunk
 
 
 def default_message(input_prompt: str):
@@ -34,6 +24,7 @@ class ZhipuLLM(LLM):
         self.top_p = config.zhipu_top_p
         self.temperature = config.zhipu_temperature
         self.stream = config.zhipu_stream
+        self.multi_chat_max_msgs = config.multi_chat_max_rounds * 2
         self._client = ZhipuAI(api_key=os.getenv("ZHIPU_API_KEY"))
 
     def chat(self, input_prompt: str) -> str:
@@ -45,3 +36,35 @@ class ZhipuLLM(LLM):
             temperature=self.temperature,
         )
         return response.choices[0].message.content
+
+    def chat_with_history(
+        self,
+        messages: List[dict],
+        stream=False,
+        need_append=False,
+    ) -> str | Generator[bytes, Any, None]:
+        messages = messages[-self.multi_chat_max_msgs:]
+        response = self._client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            stream=stream,
+            top_p=self.top_p,
+            temperature=self.temperature,
+        )
+        if not stream:
+            return response.choices[0].message.content
+
+        def response_stream():
+            for chunk in response:
+                # choices[0].delta in Zhipu
+                content = chunk.choices[0].delta.content
+                stream_chunk = StreamChunk(
+                    content=content,
+                    model=self.model_name,
+                )
+                yield stream_chunk.to_json().encode()
+
+            if not need_append:
+                yield StreamChunk(model=self.model_name, content="", done=True).to_json().encode()
+
+        return response_stream()

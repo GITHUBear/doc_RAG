@@ -1,14 +1,34 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
 from typing import Union
 from fastapi import FastAPI
 from pydantic import BaseModel
 from search_engine import get_model
 from config import RagConfig
-from chat import chat
+from chat import chat, multi_chat
+import logging
+import json
+import datetime
+
+import os
+from zhipuai import ZhipuAI
+from dotenv import load_dotenv
+from config import RagConfig
+
+load_dotenv(".env")
+
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger = logging.getLogger(__name__)
+logger.addHandler(handler)
+logger.setLevel(
+    logging.DEBUG if os.environ.get("DEBUG", "false") == "true" else logging.INFO
+)
 
 app = FastAPI()
 
-model = get_model(RagConfig())
+# model = get_model(RagConfig())
 
 
 @app.get("/")
@@ -141,3 +161,18 @@ async def handle_chat(request: Request):
     data = await request.json()
     response = chat(data["input"])
     return {"answer": response}
+
+print(chat("你好！"))
+
+@app.post("/api/chat")
+async def handle_api_chat(request: Request):
+    data = await request.json()
+    logger.debug(data)
+
+    messages: list = data["messages"]
+    print(messages)
+
+    query = messages.pop()["content"]
+
+    generator = multi_chat(query, messages, stream=True, model="tongyi")
+    return StreamingResponse(generator, media_type="application/json")
